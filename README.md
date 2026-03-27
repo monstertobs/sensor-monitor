@@ -353,4 +353,6 @@ MIT License – frei nutzbar, veränderbar und weiterzugeben.
 **Tobias Meier**
 admin@secutobs.com
 
+## ☕ Support If you find this project useful and want to say thanks, feel free to send a small donation in Bitcoin: **BTC:** 1ADFsY95oPRvVQ36yWcud8zM4qzZZDqf6F No pressure – a GitHub ⭐ star is also very much appreciated!
+
 *Dieses Projekt wurde für den privaten Einsatz entwickelt und mit Hilfe von Claude (Anthropic) umgesetzt.*
