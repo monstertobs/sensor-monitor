@@ -1,0 +1,18 @@
+{
+  "simulation_mode": false,
+  "read_interval": 30,
+  "ingest_token": "DEIN_SICHERER_TOKEN_HIER",
+  "rooms": [
+    {
+      "id": "r1",
+      "name": "Öltankraum",
+      "gpio": 4,
+      "thresholds": {
+        "temp_max": 18,
+        "temp_min": 5,
+        "hum_max": 70,
+        "hum_min": 40
+      }
+    }
+  ]
+}

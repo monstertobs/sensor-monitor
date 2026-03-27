@@ -1,0 +1,130 @@
+Sensor Monitor – Temperatur & Luftfeuchtigkeit
+==============================================
+Version:    0.5.7
+Datum:      2026-03-24
+Autor:      Tobias Meier
+E-Mail:     admin@secutobs.com
+Plattform:  Raspberry Pi Zero 1 (32-bit OS Lite, Bookworm)
+
+Versionsschema
+--------------
+  x.0.0  = Großes Redesign
+  0.x.0  = Neue Funktion
+  0.0.x  = Bugfix
+
+Changelog
+---------
+0.5.7  (2026-03-26)
+  FIX: Online-Status nutzt stats_1h statt nur offline_sec
+  FIX: slave_registry last_seen mit localtime (Zeitzonen-Fix)
+  Slave zeigt Verbunden wenn Transfers in letzter Stunde vorhanden
+
+0.5.6  (2026-03-25)
+  Chart-Redesign: Farbverlauf, bessere Tooltips (Emoji, dunkler Hintergrund)
+  Chart: Kein ueberwaeltigender Fill mehr, elegante Gradient-Fuellung
+  Vergleichs-Chart: einheitliches Design
+
+0.5.5  (2026-03-25)
+  FIX: PYTHONUNBUFFERED=1 - Python-Output im Journal sichtbar
+  FIX: IIO Wartezeit beim Start verhindert Race Condition
+
+0.5.4  (2026-03-25)
+  Slave Watchdog: automatischer Neustart wenn >5min kein Erfolg
+  systemd: Restart=always, RestartSec=15, max 10x in 5min
+
+0.5.3  (2026-03-25)
+  Schaltplan komplett neu gezeichnet:
+  - VCC korrekt an 5V (Pin 2), nicht 3,3V
+  - Pull-Up Widerstand klar verbunden (nicht in der Luft)
+  - Knotenpunkt DATA deutlich sichtbar
+  - Elegantes Apple-Design mit Legende
+
+0.5.2  (2026-03-24)
+  FIX: Netzwerk-Tab Status-Anzeige verbessert
+  'Offline' = wirklich nicht erreichbar (>1h keine Daten)
+  'Keine Daten' = Pi laeuft, sendet aber gerade nicht (gelb)
+  'Verbunden' = Daten kommen regelmaessig (gruen)
+
+0.5.1  (2026-03-24)
+  FIX Master: app.py nutzt jetzt Kernel IIO-Treiber (Pi Zero 1)
+  Automatischer Fallback auf adafruit_dht
+
+0.5.0  (2026-03-24)
+  Slave vollständig in Betrieb – echter DHT22 Sensor aktiv
+  FIX: Kernel IIO-Treiber fuer Pi Zero 1 (dtoverlay=dht11,gpiopin=4)
+  Pi Zero 1 zu langsam fuer Software-Polling → Timing in Hardware
+  sender.py: IIO-Treiber als primäre Methode, adafruit_dht als Fallback
+  Slave sendet Live-Daten an Master, Netzwerk-Tab zeigt Verbindung
+
+0.4.3  (2026-03-24)
+  FIX Slave: DHT22 liest jetzt per Kernel IIO-Treiber (Pi Zero 1 kompatibel)
+  Pi Zero 1 ist zu langsam fuer Software-Polling → Kernel-Timing in Hardware
+  Automatischer Fallback auf adafruit_dht falls IIO nicht verfuegbar
+  config.txt: dtoverlay=dht11,gpiopin=4 aktivieren
+
+0.4.2  (2026-03-24)
+  FIX: loadSlaves() wurde beim Tab-Wechsel nicht aufgerufen
+  → Netzwerk-Tab zeigte immer 'Lade...' statt Slave-Status
+
+0.4.1  (2026-03-24)
+  FIX: SVG-Schaltplan inline eingebettet (kein HTTP-Request mehr nötig)
+  FIX: firstboot.sh kopiert jetzt static/ Ordner auf den Pi
+  FIX: migrate_db() – fehlende Tabellen in bestehender DB nachgerüstet
+  FIX: Netzwerk-Tab zeigt Fehler statt 'Lade...' bei API-Problem
+
+0.4.0  (2026-03-24)
+  NEU: Netzwerk-Tab im Dashboard – Slave-Statistiken
+  - Verbindungsqualität als Prozent und Balken (24h)
+  - Timeline: letzte 20 Übertragungen farbcodiert
+  - Latenz, Puffergröße, Offline-Dauer
+  - Ping-Button: testet mDNS + letzte IP
+  - Slave meldet IP, Hostname, Uptime, Version mit
+  - IP-Änderung kein Problem: mDNS (pitemp2.local) immer aktuell
+
+0.3.1  (2026-03-24)
+  - Slave: Store & Forward – Puffert Daten lokal in buffer.db
+  - Slave: Automatisches Nachsenden bei Reconnect (mit Originalzeit)
+  - Slave: Offline-Dauer wird angezeigt
+  - Master: /api/ingest akzeptiert optionalen timestamp Parameter
+  - Slave: Batch-Versand (50 Messungen pro Zyklus)
+  - Slave: Alter Puffer wird nach 7 Tagen automatisch gelöscht
+
+0.3.0  (2026-03-24)
+  NEU: Master/Slave Architektur – bis zu 3 Pi Zero miteinander verbinden
+  - /api/ingest Endpunkt empfaengt Daten von Slave-Pis
+  - Token-Authentifizierung (Standard: sensormonitor2026)
+  - Daten von Pi 2 erscheinen automatisch im Dashboard
+
+0.2.1  (2026-03-24)
+  - Schaltplan DHT22 + 10kOhm Pull-Up als SVG auf Webseite (Einstellungen)
+  - Schaltplan als PNG in Anleitung (Word-Dokument)
+
+0.2.0  (2026-03-24)
+  NEU: Tageszusammenfassung Min/Avg/Max pro Raum (Tab 'Analyse')
+  NEU: Schimmelrisiko-Anzeige mit Taupunkt-Berechnung
+  NEU: Alarmverlauf mit Zeitstempel
+  NEU: Vergleichsansicht alle Raeume in einem Chart (Tab 'Vergleich')
+  NEU: Push-Benachrichtigungen bei Grenzwert-Alarm (Browser API)
+  NEU: 3-Tab Navigation: Uebersicht / Vergleich / Analyse
+  API: /api/summary /api/mold_risk /api/compare
+
+0.1.1  (2026-03-24)
+  - Apple-Design: helles, minimalistisches iOS-Look-and-Feel
+  - Neues Farbschema: Weiss/Hellgrau, iOS-Blau, System-Fonts
+  - Soft Shadows statt Borders
+  - iOS-Toggle, Segmented Control, native Inputs
+
+0.1.0  (2026-03-24)
+  NEU: Einstellungs-Seite (Tab-Navigation)
+  - Demo/Live-Modus umschalten per Toggle
+  - Beim Wechsel Demo → Live: DB automatisch geleert
+  - GPIO-Verdrahtungsanleitung mit Pinout
+  - Raumverwaltung: Räume hinzufügen / umbenennen / löschen
+  - Messintervall einstellbar (10s – 5min)
+  - Alle Einstellungen persistent in config.json
+  - Sensor-Thread startet nach Änderungen automatisch neu
+
+0.0.1  (2026-03-24)
+  - Initiale stabile Version
+  - Multi-Raum Dashboard (bis zu 4 DHT22 Sensoren)
+  - Captive Portal, Ländercode-Fix, Zeitzone Berlin, Hostname pitemp

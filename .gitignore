@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Datenbank (keine Nutzerdaten hochladen)
+*.db
+*.sqlite
+*.sqlite3
+
+# Konfiguration mit persönlichen Daten
+sensor-tracker/config.json
+sensor-sender/config.json
+
+# Logs
+*.log
+firstboot.log
+firstboot.done
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporäre Dateien
+*.tmp
+*.bak
+*.swp
+*~
+
+# Virtuelle Umgebungen
+venv/
+env/
+.env/

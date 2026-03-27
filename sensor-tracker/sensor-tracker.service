@@ -1,0 +1,15 @@
+[Unit]
+Description=Sensor Monitor v0.5.0 – Tobias Meier
+After=network.target
+
+[Service]
+WorkingDirectory=/home/pi/sensor-tracker
+ExecStart=/usr/bin/python3 /home/pi/sensor-tracker/app.py
+Restart=always
+RestartSec=5
+User=pi
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

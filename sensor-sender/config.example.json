@@ -1,0 +1,11 @@
+{
+  "master_url":   "http://pitemp.local:5000",
+  "ingest_token": "DEIN_SICHERER_TOKEN_HIER",
+  "room_id":      "r2",
+  "room_name":    "Arbeitszimmer",
+  "gpio_pin":     4,
+  "interval_sec": 30,
+  "simulation":   false,
+  "buffer_days":  7,
+  "batch_size":   50
+}

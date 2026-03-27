@@ -1,0 +1,21 @@
+[Unit]
+Description=Sensor Sender (Slave)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/sensor-sender
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/python3 /home/pi/sensor-sender/sender.py
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

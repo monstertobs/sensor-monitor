@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Sensor Monitor</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#F2F2F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F2F2F7;--surface:#FFFFFF;--surface2:#F2F2F7;
+  --border:rgba(0,0,0,.08);--sep:rgba(60,60,67,.12);
+  --text:#1C1C1E;--text2:#3A3A3C;--muted:#8E8E93;--muted2:#AEAEB2;
+  --blue:#007AFF;--green:#34C759;--yellow:#FF9F0A;--red:#FF3B30;
+  --teal:#30B0C7;--purple:#AF52DE;--indigo:#5856D6;
+  --r:16px;
+  --shadow:0 2px 12px rgba(0,0,0,.06),0 0 0 0.5px rgba(0,0,0,.04);
+  --shadow-sm:0 1px 6px rgba(0,0,0,.05),0 0 0 0.5px rgba(0,0,0,.03);
+}
+html,body{height:100%;background:var(--bg)}
+body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.page{position:absolute;inset:0;z-index:1;overflow-y:auto;
+  transition:opacity .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1)}
+.page.hidden{opacity:0;pointer-events:none;transform:translateX(22px)}
+.page.slide-left{transform:translateX(-22px)}
+#app{position:relative;height:100vh;overflow:hidden}
+
+/* Header */
+.hdr{position:sticky;top:0;z-index:50;height:52px;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(242,242,247,.9);
+  backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+  border-bottom:0.5px solid var(--sep)}
+.hdr-center{text-align:center;flex:1}
+.hdr-title{font-size:17px;font-weight:600;letter-spacing:-.2px}
+.hdr-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.06);
+  color:var(--text);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.nav-btn:hover{background:rgba(0,0,0,.1)}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;
+  letter-spacing:.04em;color:var(--muted);background:rgba(0,0,0,.05);padding:4px 9px;border-radius:20px}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(52,199,89,.4);animation:pulse 2s infinite}
+.sim-dot{background:var(--yellow)!important;animation:none!important;box-shadow:none!important}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,199,89,.4)}70%{box-shadow:0 0 0 6px rgba(52,199,89,0)}100%{box-shadow:0 0 0 0 rgba(52,199,89,0)}}
+
+.scroll-body{padding:20px 16px 96px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.section-hdr{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;padding:0 4px 8px;margin-top:4px}
+
+/* Segmented Tab (Übersicht / Vergleich) */
+.seg-ctrl{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;gap:2px;margin:0 16px 4px}
+.seg-btn{flex:1;padding:7px 0;border-radius:8px;font-size:13px;font-weight:600;border:none;
+  background:none;color:var(--muted);cursor:pointer;transition:all .18s;font-family:inherit}
+.seg-btn.active{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--text)}
+
+/* Room Cards */
+.room-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
+  cursor:pointer;overflow:hidden;transition:transform .15s;
+  animation:rise .4s cubic-bezier(.34,1.4,.64,1) both}
+.room-card:nth-child(2){animation-delay:.06s}.room-card:nth-child(3){animation-delay:.12s}.room-card:nth-child(4){animation-delay:.18s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.room-card:active{transform:scale(.985)}
+.room-inner{padding:18px}
+.room-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.room-name{font-size:17px;font-weight:600;letter-spacing:-.3px}
+.room-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.status-pill{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.status-pill.green{background:rgba(52,199,89,.12);color:#1A7F37}
+.status-pill.yellow{background:rgba(255,159,10,.12);color:#A05A00}
+.status-pill.red{background:rgba(255,59,48,.12);color:#C0392B}
+.room-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric-tile{background:var(--surface2);border-radius:12px;padding:14px 12px}
+.metric-lbl{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+.metric-val-row{display:flex;align-items:baseline;gap:3px}
+.metric-val{font-size:30px;font-weight:300;letter-spacing:-1.5px;line-height:1}
+.metric-unit{font-size:13px;color:var(--muted)}
+.metric-range{font-size:11px;color:var(--muted2);margin-top:5px}
+.metric-bar{height:3px;border-radius:2px;background:rgba(0,0,0,.08);margin-top:7px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+
+/* Tageszusammenfassung */
+.summary-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.summary-room{font-size:14px;font-weight:600;margin-bottom:10px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.sum-tile{background:var(--surface2);border-radius:10px;padding:10px 8px;text-align:center}
+.sum-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+.sum-val{font-size:16px;font-weight:600;letter-spacing:-.5px}
+.sum-unit{font-size:10px;color:var(--muted)}
+
+/* Schimmelrisiko */
+.mold-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;
+  display:flex;flex-direction:column;gap:12px}
+.mold-room-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mold-room-name{font-size:14px;font-weight:600;flex:1}
+.mold-bar-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.mold-bar-bg{height:6px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden}
+.mold-bar-fill{height:100%;border-radius:3px;transition:width .7s ease}
+.mold-pct{font-size:11px;color:var(--muted)}
+.mold-badge{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.mold-none,.mold-low{background:rgba(52,199,89,.12);color:#1A7F37}
+.mold-medium{background:rgba(255,159,10,.12);color:#A05A00}
+.mold-high{background:rgba(255,59,48,.12);color:#C0392B}
+.mold-advice{font-size:12px;color:var(--muted);padding-top:4px;border-top:0.5px solid var(--sep);line-height:1.5}
+.mold-sep{height:0.5px;background:var(--sep)}
+
+/* Vergleichsansicht */
+.compare-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.compare-tabs{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;gap:2px;margin-bottom:14px}
+.cmp-tab{flex:1;padding:6px 0;border-radius:8px;font-size:12px;font-weight:600;border:none;
+  background:none;color:var(--muted);cursor:pointer;transition:all .18s;font-family:inherit}
+.cmp-tab.active{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--text)}
+.cmp-time-tabs{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;gap:2px;margin-bottom:14px}
+.cmp-time-tab{flex:1;padding:6px 0;border-radius:8px;font-size:12px;font-weight:600;border:none;
+  background:none;color:var(--muted);cursor:pointer;transition:all .18s;font-family:inherit}
+.cmp-time-tab.active{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--text)}
+
+/* Push Notification Banner */
+.notif-banner{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:14px 16px;display:flex;align-items:center;gap:12px}
+.notif-icon{font-size:28px;flex-shrink:0}
+.notif-text{flex:1}
+.notif-title{font-size:14px;font-weight:600}
+.notif-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.notif-btn{padding:8px 16px;border-radius:12px;border:none;background:var(--blue);
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;
+  transition:opacity .15s}
+.notif-btn:active{opacity:.8}
+.notif-btn.granted{background:rgba(52,199,89,.15);color:#1A7F37}
+
+/* Detail */
+.detail-hero{padding:24px 20px 0}
+.detail-room-name{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.detail-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.big-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
+.big-tile{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:20px}
+.big-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:12px}
+.big-val{font-size:44px;font-weight:200;letter-spacing:-2px;line-height:1}
+.big-unit{font-size:17px;color:var(--muted);font-weight:300}
+.range-bar{height:3px;border-radius:2px;background:var(--sep);margin-top:14px;overflow:hidden}
+.range-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.section{padding:16px 16px 0}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;
+  text-transform:uppercase;margin-bottom:10px;padding:0 4px}
+.chart-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.time-tabs{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;gap:2px;margin-bottom:14px}
+.time-tab{flex:1;padding:6px 0;border-radius:8px;font-size:12px;font-weight:600;border:none;
+  background:none;color:var(--muted);cursor:pointer;transition:all .18s;font-family:inherit}
+.time-tab.active{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--text)}
+.thr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.thr-tile{background:var(--surface);border-radius:12px;box-shadow:var(--shadow-sm);padding:12px 14px}
+.thr-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+.thr-row{display:flex;align-items:baseline;gap:3px}
+.thr-input{background:none;border:none;color:var(--text);font-size:20px;font-weight:500;font-family:inherit;width:100%;outline:none}
+.thr-unit{font-size:12px;color:var(--muted)}
+.primary-btn{width:100%;padding:15px;border-radius:14px;border:none;background:var(--blue);
+  color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;
+  margin-top:8px;transition:opacity .15s}
+.primary-btn:active{opacity:.8}
+
+/* Settings */
+.settings-group{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.settings-row{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;border-bottom:0.5px solid var(--sep)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-info{flex:1}
+.settings-row-title{font-size:15px;font-weight:500}
+.settings-row-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.settings-group-label{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;
+  text-transform:uppercase;padding:16px 4px 8px}
+.toggle-input{display:none}
+.toggle-track{width:51px;height:31px;border-radius:16px;background:#E5E5EA;cursor:pointer;
+  transition:background .2s;position:relative;display:block;flex-shrink:0}
+.toggle-input:checked + .toggle-track{background:var(--green)}
+.toggle-track::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;
+  border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2);
+  transition:transform .22s cubic-bezier(.34,1.4,.64,1)}
+.toggle-input:checked + .toggle-track::after{transform:translateX(20px)}
+.mode-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.mode-tag.sim{background:rgba(255,159,10,.12);color:#A05A00}
+.mode-tag.live{background:rgba(52,199,89,.12);color:#1A7F37}
+.warn-box{background:rgba(255,159,10,.1);border-radius:10px;padding:10px 12px;font-size:12px;color:#7A4400;line-height:1.5;margin-top:8px}
+.pinout-list{display:flex;flex-direction:column;gap:0}
+.pin-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--sep)}
+.pin-row:last-child{border-bottom:none}
+.pin-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.pin-num{font-size:15px;font-weight:600;min-width:70px}
+.pin-desc{font-size:13px;color:var(--muted)}
+.wiring-note{font-size:12px;color:var(--muted);line-height:1.7;background:var(--surface2);border-radius:10px;padding:12px;margin-top:8px}
+.interval-picker{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;gap:2px}
+.ivl-btn{flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:600;border:none;
+  background:none;color:var(--muted);cursor:pointer;transition:all .18s;font-family:inherit}
+.ivl-btn.active{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--text)}
+.room-item{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+.room-item-hdr{display:flex;align-items:center;justify-content:space-between}
+.room-item-title{font-size:15px;font-weight:600}
+.del-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,59,48,.1);
+  color:var(--red);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.del-btn:hover{background:rgba(255,59,48,.2)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-group.wide{grid-column:span 2}
+.field-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.field-input{background:var(--surface2);border:none;border-radius:10px;padding:10px 12px;
+  color:var(--text);font-size:15px;font-family:inherit;outline:none;width:100%;transition:box-shadow .15s}
+.field-input:focus{box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+.add-room-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;
+  border-radius:14px;border:1.5px dashed var(--sep);background:none;color:var(--muted);
+  font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.add-room-btn:hover{border-color:var(--blue);color:var(--blue)}
+.blue-btn{width:100%;padding:15px;border-radius:14px;border:none;background:var(--blue);
+  color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.blue-btn:active{opacity:.8}
+
+
+/* Slave Stats */
+.slave-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.slave-header{padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--sep)}
+.slave-title{font-size:17px;font-weight:600}
+.slave-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.online-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.online-dot.online{background:var(--green);box-shadow:0 0 0 3px rgba(52,199,89,.2)}
+.online-dot.offline{background:var(--red)}
+.online-dot.stale{background:var(--yellow)}
+.online-dot.unknown{background:var(--muted)}
+.slave-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--sep)}
+.slave-stat{background:var(--surface);padding:14px 12px;text-align:center}
+.slave-stat-val{font-size:22px;font-weight:600;letter-spacing:-.5px}
+.slave-stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:3px}
+.slave-timeline{padding:14px 16px}
+.tl-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px}
+.tl-dots{display:flex;gap:4px;flex-wrap:wrap}
+.tl-dot{width:14px;height:14px;border-radius:4px;cursor:default;position:relative}
+.tl-dot.ok{background:rgba(52,199,89,.7)}
+.tl-dot.fail{background:rgba(255,59,48,.7)}
+.tl-dot.buf{background:rgba(255,159,10,.7)}
+.slave-info{padding:14px 16px;display:flex;flex-direction:column;gap:8px;border-top:0.5px solid var(--sep)}
+.info-row{display:flex;justify-content:space-between;font-size:13px}
+.info-key{color:var(--muted);font-weight:500}
+.info-val{color:var(--text);font-weight:500;text-align:right}
+.ping-btn{margin:0 16px 16px;width:calc(100% - 32px);padding:12px;border-radius:12px;
+  border:none;background:rgba(0,122,255,.1);color:var(--blue);font-size:14px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.ping-btn:hover{background:rgba(0,122,255,.18)}
+.ping-btn:active{opacity:.7}
+.ping-result{margin:0 16px 14px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6}
+.ping-result.ok{background:rgba(52,199,89,.1);color:#1A7F37}
+.ping-result.fail{background:rgba(255,59,48,.1);color:#C0392B}
+.quality-bar-wrap{padding:0 16px 14px}
+.quality-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.quality-bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.quality-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.no-slaves{text-align:center;padding:60px 20px;color:var(--muted)}
+.no-slaves-icon{font-size:40px;margin-bottom:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(28,28,30,.92);color:#fff;border-radius:12px;padding:10px 18px;
+  font-size:13px;font-weight:500;opacity:0;transition:all .26s;pointer-events:none;
+  z-index:999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:rgba(29,127,56,.95)}
+.toast.error{background:rgba(192,57,43,.95)}
+
+/* Tab Bar */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(242,242,247,.92);backdrop-filter:saturate(180%) blur(24px);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);border-top:0.5px solid var(--sep);
+  padding-bottom:env(safe-area-inset-bottom);height:68px;display:flex}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;color:var(--muted);border:none;background:none;font-family:inherit;
+  transition:color .15s;-webkit-tap-highlight-color:transparent}
+.tab-item.active{color:var(--blue)}
+.tab-icon{font-size:22px;line-height:1}
+.tab-label{font-size:10px;font-weight:500;letter-spacing:.02em}
+
+/* Alarm History */
+.alarm-list{display:flex;flex-direction:column;gap:0}
+.alarm-row{padding:12px 0;display:flex;align-items:flex-start;gap:12px;border-bottom:0.5px solid var(--sep)}
+.alarm-row:last-child{border-bottom:none}
+.alarm-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.alarm-msg{font-size:13px;color:var(--text);line-height:1.4}
+.alarm-time{font-size:11px;color:var(--muted);margin-top:2px}
+.empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ DASHBOARD ═══════════════════════════════════════════════════════════ -->
+<div id="page-home" class="page">
+  <div class="hdr">
+    <div style="width:48px"></div>
+    <div class="hdr-center">
+      <div class="hdr-title">Sensor Monitor</div>
+      <div class="hdr-sub">v{{ version }}</div>
+    </div>
+    <div class="live-pill">
+      <div class="pulse-dot" id="hdr-dot"></div>
+      <span id="hdr-mode">LIVE</span>
+    </div>
+  </div>
+  <div class="seg-ctrl">
+    <button class="seg-btn active" id="seg-overview" onclick="setSegment('overview')">Übersicht</button>
+    <button class="seg-btn" id="seg-compare" onclick="setSegment('compare')">Vergleich</button>
+    <button class="seg-btn" id="seg-analysis" onclick="setSegment('analysis')">Analyse</button>
+  </div>
+
+  <!-- Übersicht -->
+  <div id="seg-overview-content" class="scroll-body">
+    <div id="notif-banner-wrap"></div>
+    <div id="room-list"></div>
+  </div>
+
+  <!-- Vergleich -->
+  <div id="seg-compare-content" class="scroll-body" style="display:none">
+    <div class="section-hdr" style="padding-bottom:0">Alle Räume im Vergleich</div>
+    <div class="compare-card">
+      <div class="compare-tabs">
+        <button class="cmp-tab active" onclick="setCmpMetric('temp',this)">Temperatur</button>
+        <button class="cmp-tab" onclick="setCmpMetric('hum',this)">Luftfeuchtigkeit</button>
+      </div>
+      <div class="cmp-time-tabs">
+        <button class="cmp-time-tab active" onclick="setCmpHours(1,this)">1h</button>
+        <button class="cmp-time-tab" onclick="setCmpHours(6,this)">6h</button>
+        <button class="cmp-time-tab" onclick="setCmpHours(24,this)">24h</button>
+      </div>
+      <canvas id="chart-compare" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- Analyse -->
+  <div id="seg-analysis-content" class="scroll-body" style="display:none">
+    <div class="section-hdr">Tageszusammenfassung</div>
+    <div id="summary-list"></div>
+    <div class="section-hdr" style="margin-top:8px">Schimmelrisiko</div>
+    <div id="mold-list"></div>
+    <div class="section-hdr" style="margin-top:8px">Alarmverlauf</div>
+    <div class="summary-card" id="alarm-list-wrap">
+      <div class="empty-state">Noch keine Alarme</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL ══════════════════════════════════════════════════════════════ -->
+<div id="page-detail" class="page hidden">
+  <div class="hdr">
+    <button class="nav-btn" onclick="showPage('home','left')">‹</button>
+    <div class="hdr-center"><div class="hdr-title" id="detail-hdr-name">–</div></div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="detail-hero">
+    <div class="detail-room-name" id="detail-name">–</div>
+    <div class="detail-sub" id="detail-sub">–</div>
+  </div>
+  <div class="big-metrics" id="detail-metrics"></div>
+  <div class="section" style="margin-top:6px">
+    <div class="section-title">Verlauf</div>
+    <div class="chart-card">
+      <div class="time-tabs">
+        <button class="time-tab active" onclick="setHours(1,this)">1h</button>
+        <button class="time-tab" onclick="setHours(3,this)">3h</button>
+        <button class="time-tab" onclick="setHours(6,this)">6h</button>
+        <button class="time-tab" onclick="setHours(24,this)">24h</button>
+      </div>
+      <canvas id="chart-main" height="130"></canvas>
+    </div>
+  </div>
+  <div class="section" style="margin-top:6px">
+    <div class="section-title">Grenzwerte</div>
+    <div class="thr-grid" id="thr-grid"></div>
+    <button class="primary-btn" onclick="saveThresholds()">Grenzwerte speichern</button>
+  </div>
+  <div style="height:24px"></div>
+</div>
+
+
+<!-- ══ SLAVE NETZWERK ══════════════════════════════════════════════════════ -->
+<div id="page-slaves" class="page hidden">
+  <div class="hdr">
+    <div style="width:32px"></div>
+    <div class="hdr-center">
+      <div class="hdr-title">Netzwerk</div>
+      <div class="hdr-sub">Slave-Verbindungen</div>
+    </div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="scroll-body" id="slaves-content">
+    <div style="text-align:center;color:var(--muted);padding:40px">Lade...</div>
+  </div>
+</div>
+
+<!-- ══ EINSTELLUNGEN ══════════════════════════════════════════════════════ -->
+<div id="page-settings" class="page hidden">
+  <div class="hdr">
+    <div style="width:32px"></div>
+    <div class="hdr-center"><div class="hdr-title">Einstellungen</div></div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="scroll-body">
+    <div class="settings-group-label">Betriebsmodus</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-title">Demo-Modus</div>
+          <div class="settings-row-desc">Simulierte Daten ohne Hardware</div>
+        </div>
+        <label><input type="checkbox" id="sim-toggle" class="toggle-input" onchange="toggleMode(this)">
+          <span class="toggle-track"></span></label>
+      </div>
+      <div style="padding:12px 16px">
+        <div id="mode-badge" class="mode-tag sim">Demo-Modus aktiv</div>
+        <div id="mode-warning" class="warn-box" style="display:none">
+          ⚠ Beim Wechsel auf Live werden Demo-Daten gelöscht und der Sensor neu gestartet.
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group-label">Benachrichtigungen</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-title">Push-Benachrichtigungen</div>
+          <div class="settings-row-desc" id="notif-desc">Bei Grenzwert-Alarm benachrichtigen</div>
+        </div>
+        <button class="notif-btn" id="notif-btn" onclick="requestNotifPermission()">Aktivieren</button>
+      </div>
+    </div>
+
+    <div class="settings-group-label">Messintervall</div>
+    <div class="settings-group">
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:12px">
+        <div class="settings-row-desc">Wie oft soll gemessen werden?</div>
+        <div class="interval-picker" id="interval-btns">
+          <button class="ivl-btn" onclick="setInterval_(10)">10s</button>
+          <button class="ivl-btn" onclick="setInterval_(30)">30s</button>
+          <button class="ivl-btn" onclick="setInterval_(60)">1 min</button>
+          <button class="ivl-btn" onclick="setInterval_(120)">2 min</button>
+          <button class="ivl-btn" onclick="setInterval_(300)">5 min</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group-label">DHT22 Verdrahtung</div>
+    <div class="settings-group">
+      <div style="padding:14px 16px">
+        <div class="pinout-list">
+          <div class="pin-row"><div class="pin-dot" style="background:#FF3B30"></div><div class="pin-num">Pin 1 VCC</div><div class="pin-desc">→ 3,3 V (Pi Pin 1)</div></div>
+          <div class="pin-row"><div class="pin-dot" style="background:#007AFF"></div><div class="pin-num">Pin 2 Data</div><div class="pin-desc">→ GPIO + 10 kΩ Pull-Up</div></div>
+          <div class="pin-row"><div class="pin-dot" style="background:#8E8E93"></div><div class="pin-num">Pin 3 NC</div><div class="pin-desc">Nicht belegt</div></div>
+          <div class="pin-row"><div class="pin-dot" style="background:#34C759"></div><div class="pin-num">Pin 4 GND</div><div class="pin-desc">→ GND (Pi Pin 6)</div></div>
+        </div>
+        <div class="wiring-note">GPIO 4 · Pin 7 · Raum 1<br>GPIO 17 · Pin 11 · Raum 2<br>GPIO 27 · Pin 13 · Raum 3<br>GPIO 22 · Pin 15 · Raum 4</div>
+        <div style="margin-top:14px">
+          <div class="field-lbl" style="margin-bottom:8px">Schaltplan</div>
+          <div style="width:100%;border-radius:10px;overflow:hidden"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="100%" style="background:#F8F8FA;border-radius:12px">
+
+  <!-- ── Hintergrund ── -->
+  <rect width="680" height="400" fill="#F8F8FA" rx="12"/>
+  <text x="340" y="30" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#1C1C1E">DHT22 Verdrahtung · Pi Zero W</text>
+
+  <!-- ══ DHT22 ══ -->
+  <rect x="30" y="55" width="116" height="250" rx="10" fill="#1A1A2E" stroke="#4A4A6A" stroke-width="1.2"/>
+  <text x="88" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">DHT22</text>
+  <text x="88" y="93" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">AM2302</text>
+
+  <!-- Pin 1 VCC -->
+  <rect x="32" y="105" width="112" height="42" fill="rgba(255,59,48,0.2)"/>
+  <text x="75" y="122" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 1</text>
+  <text x="75" y="138" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FF6B6B">VCC</text>
+  <circle cx="146" cy="126" r="5" fill="#FF3B30"/>
+
+  <!-- Pin 2 DATA -->
+  <rect x="32" y="147" width="112" height="42" fill="rgba(0,122,255,0.2)"/>
+  <line x1="32" y1="147" x2="144" y2="147" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="164" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 2</text>
+  <text x="75" y="180" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64B5FF">DATA</text>
+  <circle cx="146" cy="168" r="5" fill="#007AFF"/>
+
+  <!-- Pin 3 NC -->
+  <rect x="32" y="189" width="112" height="42" fill="rgba(255,255,255,0.04)"/>
+  <line x1="32" y1="189" x2="144" y2="189" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="206" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#636366">Pin 3</text>
+  <text x="75" y="222" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#636366">NC</text>
+  <!-- X für nicht belegt -->
+  <line x1="154" y1="203" x2="168" y2="217" stroke="#636366" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="168" y1="203" x2="154" y2="217" stroke="#636366" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Pin 4 GND -->
+  <rect x="32" y="231" width="112" height="42" fill="rgba(52,199,89,0.2)"/>
+  <line x1="32" y1="231" x2="144" y2="231" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="248" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 4</text>
+  <text x="75" y="264" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#34C759">GND</text>
+  <circle cx="146" cy="252" r="5" fill="#34C759"/>
+
+  <!-- ══ WIDERSTAND ══ -->
+  <!-- Widerstand-Symbol: Rechteck mit Anschlüssen -->
+  <line x1="274" y1="115" x2="298" y2="115" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round"/>
+  <rect x="298" y="104" width="68" height="22" rx="6" fill="#1C1C1E" stroke="#FF9F0A" stroke-width="2"/>
+  <text x="332" y="119" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#FF9F0A">10 kΩ</text>
+  <line x1="366" y1="115" x2="390" y2="115" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round"/>
+  <!-- Beschriftung -->
+  <text x="332" y="142" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">Pull-Up</text>
+
+  <!-- ══ PI ZERO ══ -->
+  <rect x="490" y="55" width="162" height="280" rx="10" fill="#1A2E1A" stroke="#2A5C2A" stroke-width="1.2"/>
+  <text x="571" y="76" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">Pi Zero W</text>
+  <text x="571" y="91" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">GPIO Header</text>
+
+  <!-- Pi Pin 1 - 3.3V -->
+  <rect x="492" y="100" width="158" height="38" fill="rgba(255,159,10,0.2)"/>
+  <circle cx="488" cy="119" r="5" fill="#FF9F0A"/>
+  <text x="571" y="115" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 1</text>
+  <text x="571" y="130" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FFCC44">3,3 V (Pull-Up)</text>
+
+  <!-- Pi Pin 2 - 5V -->
+  <rect x="492" y="138" width="158" height="38" fill="rgba(255,59,48,0.2)"/>
+  <line x1="492" y1="138" x2="650" y2="138" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="157" r="5" fill="#FF3B30"/>
+  <text x="571" y="153" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 2</text>
+  <text x="571" y="168" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FF6B6B">5 V (VCC)</text>
+
+  <!-- Pi Pin 7 - GPIO4 -->
+  <rect x="492" y="176" width="158" height="38" fill="rgba(0,122,255,0.2)"/>
+  <line x1="492" y1="176" x2="650" y2="176" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="195" r="5" fill="#007AFF"/>
+  <text x="571" y="191" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 7</text>
+  <text x="571" y="206" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64B5FF">GPIO 4 (DATA)</text>
+
+  <!-- Pi Pin 6 - GND -->
+  <rect x="492" y="214" width="158" height="38" fill="rgba(52,199,89,0.2)"/>
+  <line x1="492" y1="214" x2="650" y2="214" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="233" r="5" fill="#34C759"/>
+  <text x="571" y="229" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 6</text>
+  <text x="571" y="244" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#34C759">GND</text>
+
+  <!-- weitere Pins grau -->
+  <line x1="492" y1="252" x2="650" y2="252" stroke="rgba(255,255,255,.05)" stroke-width="0.5"/>
+  <text x="571" y="265" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#3A3A3C">Pin 11 · 13 · 15 (weitere GPIOs)</text>
+
+  <!-- ══ VERBINDUNGEN ══ -->
+
+  <!-- ORANGE: Pull-Up 3.3V Bus – Widerstand links → Pi Pin 1 -->
+  <!-- Widerstand rechts → nach oben → Pi Pin 1 -->
+  <polyline points="390,115 440,115 440,119 488,119"
+    fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Widerstand links → nach oben → Bus-Linie Knotenpunkt -->
+  <polyline points="274,115 240,115 240,168 260,168"
+    fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+    stroke-dasharray="4,3"/>
+
+  <!-- ROT: VCC → 5V (Pi Pin 2) -->
+  <polyline points="151,126 210,126 210,157 488,157"
+    fill="none" stroke="#FF3B30" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- BLAU: DATA → Knotenpunkt → GPIO4 + Widerstand -->
+  <!-- DHT22 → Knotenpunkt -->
+  <line x1="151" y1="168" x2="260" y2="168"
+    fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Knotenpunkt → Pi GPIO4 -->
+  <polyline points="260,168 440,168 440,195 488,195"
+    fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Knotenpunkt → Widerstand (gestrichelte Linie nach oben) -->
+  <!-- (die gestrichelte orange Linie kommt von 240,168 → das ist der Anschluss) -->
+
+  <!-- Knotenpunkt Marker -->
+  <circle cx="260" cy="168" r="6" fill="#007AFF" stroke="#F8F8FA" stroke-width="2"/>
+
+  <!-- GRÜN: GND -->
+  <polyline points="151,252 210,252 210,233 488,233"
+    fill="none" stroke="#34C759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ══ LABELS ══ -->
+  <!-- Pull-Up Beschriftung -->
+  <text x="240" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">Pull-Up</text>
+  <text x="240" y="98" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">zu 3,3V</text>
+
+  <!-- ══ LEGENDE ══ -->
+  <rect x="20" y="330" width="640" height="55" rx="8" fill="#FFFFFF" stroke="#E5E5EA" stroke-width="1"/>
+
+  <circle cx="45" cy="350" r="5" fill="#FF3B30"/>
+  <text x="57" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">VCC → 5V (Pin 2)</text>
+
+  <circle cx="45" cy="370" r="5" fill="#007AFF"/>
+  <text x="57" y="374" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">DATA → GPIO4 (Pin 7)</text>
+
+  <circle cx="195" cy="350" r="5" fill="#34C759"/>
+  <text x="207" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">GND → Pin 6</text>
+
+  <rect x="197" y="362" width="8" height="8" rx="2" fill="#1C1C1E" stroke="#FF9F0A" stroke-width="1.5"/>
+  <text x="211" y="372" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">10kΩ zwischen DATA und 3,3V</text>
+
+  <circle cx="395" cy="350" r="6" fill="#007AFF" stroke="#F8F8FA" stroke-width="1.5"/>
+  <text x="407" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">Knotenpunkt DATA</text>
+  <text x="407" y="372" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">Pin 3 (NC) = offen lassen</text>
+</svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group-label">Räume</div>
+    <div id="rooms-editor" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="add-room-btn" onclick="addRoomField()">+ Raum hinzufügen</button>
+    <button class="blue-btn" onclick="saveRooms()">Räume speichern</button>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-item active" id="tab-home" onclick="showPage('home','left');setTab('home')">
+    <div class="tab-icon">⊞</div><div class="tab-label">Dashboard</div>
+  </button>
+  <button class="tab-item" id="tab-slaves" onclick="showPage('slaves','right');setTab('slaves')">
+    <div class="tab-icon">📡</div><div class="tab-label">Netzwerk</div>
+  </button>
+  <button class="tab-item" id="tab-settings" onclick="showPage('settings','right');setTab('settings')">
+    <div class="tab-icon">⚙</div><div class="tab-label">Einstellungen</div>
+  </button>
+</div>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const ROOMS = {{ rooms|tojson }};
+let allRooms=[],activeRoom=null,chart=null,chartHours=1;
+let cmpChart=null,cmpMetric='temp',cmpHours=1;
+let refreshId=null,alarmLog=[];
+let currentSegment='overview';
+let _currentCfg=null,_editorRooms=[];
+const ROOM_COLORS=['#007AFF','#34C759','#FF9F0A','#AF52DE'];
+
+// ── Navigation ─────────────────────────────────────────────────────────
+function showPage(name,dir) {
+  document.querySelectorAll('.page').forEach(p=>{
+    p.classList.remove('slide-left');
+    if(!p.classList.contains('hidden')){
+      if(dir==='right') p.classList.add('slide-left');
+      p.classList.add('hidden');
+    }
+  });
+  document.getElementById('page-'+name).classList.remove('hidden','slide-left');
+  clearInterval(refreshId);
+  if(name==='home'){loadAll();refreshId=setInterval(loadAll,15000);}
+  else if(name==='settings') loadSettings();
+  else if(name==='slaves') loadSlaves();
+}
+function setTab(name){
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+}
+function toast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
+  setTimeout(()=>el.className='toast',2800);
+}
+
+// ── Segment ────────────────────────────────────────────────────────────
+function setSegment(seg){
+  currentSegment=seg;
+  ['overview','compare','analysis'].forEach(s=>{
+    document.getElementById('seg-'+s).classList.toggle('active',s===seg);
+    document.getElementById('seg-'+s+'-content').style.display=s===seg?'flex':'none';
+  });
+  if(seg==='compare') loadCompare();
+  if(seg==='analysis'){loadSummary();loadMold();}
+}
+
+// ── Load All ───────────────────────────────────────────────────────────
+async function loadAll(){
+  try{
+    const res=await fetch('/api/rooms');
+    allRooms=await res.json();
+    renderRooms(allRooms);
+    updateModeHeader();
+    checkAlarms(allRooms);
+    if(currentSegment==='compare') loadCompare();
+    if(currentSegment==='analysis'){loadSummary();loadMold();}
+  }catch(e){console.error(e)}
+}
+
+function updateModeHeader(){
+  fetch('/api/settings').then(r=>r.json()).then(cfg=>{
+    const dot=document.getElementById('hdr-dot');
+    const lbl=document.getElementById('hdr-mode');
+    dot.className=cfg.simulation_mode?'pulse-dot sim-dot':'pulse-dot';
+    lbl.textContent=cfg.simulation_mode?'DEMO':'LIVE';
+  }).catch(()=>{});
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+function comfort(d,thr){
+  if(!d) return{label:'–',cls:'green'};
+  const t=d.temp,h=d.hum;
+  if(t>thr.temp_max||t<thr.temp_min||h>thr.hum_max||h<thr.hum_min) return{label:'Alarm',cls:'red'};
+  if(Math.abs(t-(thr.temp_max+thr.temp_min)/2)>2||Math.abs(h-(thr.hum_max+thr.hum_min)/2)>8)
+    return{label:'Grenzwertig',cls:'yellow'};
+  return{label:'Optimal',cls:'green'};
+}
+function tempColor(t){
+  if(t===null) return'var(--muted)';
+  if(t<5) return'#007AFF'; if(t<18) return'#30B0C7'; if(t<26) return'#34C759';
+  return'#FF3B30';
+}
+function humColor(h){
+  if(h===null) return'var(--muted)';
+  if(h<35) return'#FF9F0A'; if(h<65) return'#007AFF';
+  return'#5856D6';
+}
+function pct(v,lo,hi){return Math.min(100,Math.max(0,((v-lo)/(hi-lo))*100))}
+function timeSince(ts){
+  const d=Math.floor((Date.now()-new Date(ts+'Z'))/1000);
+  if(d<60) return'Gerade eben'; if(d<3600) return Math.floor(d/60)+' min';
+  return Math.floor(d/3600)+' h';
+}
+function fmtTime(ts,hours){
+  const dt=new Date(ts+'Z');
+  return hours<=3
+    ?dt.toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})
+    :dt.toLocaleString('de',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Alarms ─────────────────────────────────────────────────────────────
+function checkAlarms(rooms){
+  rooms.forEach(r=>{
+    const d=r.latest; if(!d) return;
+    const t=d.temp,h=d.hum,thr=r.thresholds;
+    const now=new Date().toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'});
+    const msgs=[];
+    if(t>thr.temp_max) msgs.push(r.name+': Temperatur '+t+'°C > '+thr.temp_max+'°C');
+    if(t<thr.temp_min) msgs.push(r.name+': Temperatur '+t+'°C < '+thr.temp_min+'°C');
+    if(h>thr.hum_max)  msgs.push(r.name+': Feuchte '+h+'% > '+thr.hum_max+'%');
+    if(h<thr.hum_min)  msgs.push(r.name+': Feuchte '+h+'% < '+thr.hum_min+'%');
+    msgs.forEach(msg=>{
+      const last=alarmLog.find(a=>a.msg===msg);
+      if(!last||Date.now()-last.ts>300000){
+        alarmLog.unshift({msg,time:now,ts:Date.now(),cls:'red'});
+        if(alarmLog.length>20) alarmLog.pop();
+        sendPushNotif(msg);
+      }
+    });
+  });
+  renderAlarmLog();
+}
+
+function renderAlarmLog(){
+  const el=document.getElementById('alarm-list-wrap');
+  if(!el) return;
+  if(!alarmLog.length){
+    el.innerHTML='<div class="empty-state">🟢 Keine Alarme heute</div>'; return;
+  }
+  el.innerHTML='<div class="alarm-list">'+alarmLog.slice(0,8).map(a=>`
+    <div class="alarm-row">
+      <div class="alarm-dot" style="background:var(--red)"></div>
+      <div><div class="alarm-msg">${a.msg}</div><div class="alarm-time">${a.time}</div></div>
+    </div>`).join('')+'</div>';
+}
+
+// ── Push Notifications ─────────────────────────────────────────────────
+function initNotifUI(){
+  const btn=document.getElementById('notif-btn');
+  const desc=document.getElementById('notif-desc');
+  if(!('Notification' in window)){
+    btn.style.display='none'; desc.textContent='Nicht unterstützt'; return;
+  }
+  if(Notification.permission==='granted'){
+    btn.textContent='Aktiv ✓'; btn.className='notif-btn granted';
+    desc.textContent='Benachrichtigungen sind aktiv';
+  } else if(Notification.permission==='denied'){
+    btn.textContent='Blockiert'; btn.disabled=true;
+    desc.textContent='In Browser-Einstellungen freigeben';
+  }
+}
+function requestNotifPermission(){
+  if(!('Notification' in window)){toast('Nicht unterstützt','error');return;}
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){toast('Benachrichtigungen aktiviert');initNotifUI();}
+    else toast('Benachrichtigungen verweigert','error');
+  });
+}
+function sendPushNotif(msg){
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    new Notification('⚠ Sensor Alarm',{body:msg,icon:'/static/icon.png'});
+  }
+}
+
+// ── Render Rooms ────────────────────────────────────────────────────────
+function renderRooms(rooms){
+  const el=document.getElementById('room-list');
+  if(!rooms.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px">Keine Räume</div>';return;}
+  el.innerHTML='';
+  const hdr=document.createElement('div');
+  hdr.className='section-hdr';
+  hdr.textContent=rooms.length+' Räume';
+  el.appendChild(hdr);
+  rooms.forEach(r=>{
+    const d=r.latest,c=comfort(d,r.thresholds);
+    const t=d?d.temp:null,h=d?d.hum:null;
+    const tP=t?pct(t,r.thresholds.temp_min,r.thresholds.temp_max):0;
+    const hP=h?pct(h,r.thresholds.hum_min,r.thresholds.hum_max):0;
+    const card=document.createElement('div');
+    card.className='room-card';
+    card.onclick=()=>openDetail(r.id);
+    card.innerHTML=`<div class="room-inner">
+      <div class="room-top">
+        <div><div class="room-name">${r.name}</div>
+          <div class="room-meta">GPIO ${r.gpio} · ${d?timeSince(d.ts):'Keine Daten'}</div></div>
+        <div class="status-pill ${c.cls}">${c.label}</div>
+      </div>
+      <div class="room-metrics">
+        <div class="metric-tile">
+          <div class="metric-lbl">Temperatur</div>
+          <div class="metric-val-row">
+            <div class="metric-val" style="color:${tempColor(t)}">${t??'–'}</div>
+            <div class="metric-unit">°C</div>
+          </div>
+          <div class="metric-range">${r.thresholds.temp_min}° – ${r.thresholds.temp_max}°</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${tP}%;background:${tempColor(t)}"></div></div>
+        </div>
+        <div class="metric-tile">
+          <div class="metric-lbl">Feuchte</div>
+          <div class="metric-val-row">
+            <div class="metric-val" style="color:${humColor(h)}">${h??'–'}</div>
+            <div class="metric-unit">%</div>
+          </div>
+          <div class="metric-range">${r.thresholds.hum_min}% – ${r.thresholds.hum_max}%</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${hP}%;background:${humColor(h)}"></div></div>
+        </div>
+      </div>
+    </div>`;
+    el.appendChild(card);
+  });
+}
+
+// ── Tageszusammenfassung ────────────────────────────────────────────────
+async function loadSummary(){
+  const res=await fetch('/api/summary');
+  const data=await res.json();
+  const el=document.getElementById('summary-list');
+  if(!el) return;
+  el.innerHTML='';
+  data.forEach(r=>{
+    const s=r.today;
+    const card=document.createElement('div');
+    card.className='summary-card';
+    card.style.marginBottom='10px';
+    card.innerHTML=`<div class="summary-room">${r.name}</div>
+    ${s?`<div class="summary-grid">
+      <div class="sum-tile">
+        <div class="sum-lbl">Min °C</div>
+        <div class="sum-val" style="color:#007AFF">${s.temp_min??'–'}</div>
+      </div>
+      <div class="sum-tile">
+        <div class="sum-lbl">Ø °C</div>
+        <div class="sum-val">${s.temp_avg??'–'}</div>
+      </div>
+      <div class="sum-tile">
+        <div class="sum-lbl">Max °C</div>
+        <div class="sum-val" style="color:#FF3B30">${s.temp_max??'–'}</div>
+      </div>
+      <div class="sum-tile">
+        <div class="sum-lbl">Min %</div>
+        <div class="sum-val" style="color:#FF9F0A">${s.hum_min??'–'}</div>
+      </div>
+      <div class="sum-tile">
+        <div class="sum-lbl">Ø %</div>
+        <div class="sum-val">${s.hum_avg??'–'}</div>
+      </div>
+      <div class="sum-tile">
+        <div class="sum-lbl">Max %</div>
+        <div class="sum-val" style="color:#5856D6">${s.hum_max??'–'}</div>
+      </div>
+    </div>`:'<div style="color:var(--muted);font-size:13px">Noch keine Daten heute</div>'}`;
+    el.appendChild(card);
+  });
+}
+
+// ── Schimmelrisiko ──────────────────────────────────────────────────────
+async function loadMold(){
+  const res=await fetch('/api/mold_risk');
+  const data=await res.json();
+  const el=document.getElementById('mold-list');
+  if(!el) return;
+  const colorMap={low:'#34C759',none:'#34C759',medium:'#FF9F0A',high:'#FF3B30'};
+  const card=document.createElement('div');
+  card.className='mold-card';
+  card.innerHTML=data.map((r,i)=>`
+    <div class="mold-room-row">
+      <div class="mold-room-name">${r.name}</div>
+      <div class="mold-bar-wrap">
+        <div class="mold-bar-bg">
+          <div class="mold-bar-fill" style="width:${r.score}%;background:${colorMap[r.risk]||'#34C759'}"></div>
+        </div>
+        <div class="mold-pct">${r.temp??'–'}°C · ${r.hum??'–'}% · Taupunkt ${r.dew??'–'}°C</div>
+      </div>
+      <div class="mold-badge mold-${r.risk}">${r.label}</div>
+    </div>
+    ${r.advice?`<div class="mold-advice">${r.advice}</div>`:''}
+    ${i<data.length-1?'<div class="mold-sep"></div>':''}
+  `).join('');
+  el.innerHTML='';
+  el.appendChild(card);
+}
+
+// ── Vergleichsansicht ──────────────────────────────────────────────────
+async function loadCompare(){
+  const res=await fetch('/api/compare?hours='+cmpHours);
+  const data=await res.json();
+  const rooms=Object.keys(data);
+  if(!rooms.length) return;
+  // Alle Timestamps sammeln
+  const allTs=new Set();
+  rooms.forEach(id=>data[id].data.forEach(d=>allTs.add(d.ts)));
+  const labels=[...allTs].sort().map(ts=>fmtTime(ts,cmpHours));
+  const datasets=rooms.map((id,i)=>({
+    label: data[id].name,
+    data: data[id].data.map(d=>cmpMetric==='temp'?d.t:d.h),
+    borderColor: ROOM_COLORS[i%ROOM_COLORS.length],
+    backgroundColor: ROOM_COLORS[i%ROOM_COLORS.length]+'15',
+    borderWidth:2,pointRadius:0,tension:.4,
+  }));
+  const ctx=document.getElementById('chart-compare').getContext('2d');
+  if(cmpChart) cmpChart.destroy();
+  cmpChart=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:datasets.map((ds,i)=>({
+      ...ds,
+      borderWidth:2,
+      pointRadius:0,
+      pointHoverRadius:5,
+      pointHoverBorderColor:'#fff',
+      pointHoverBorderWidth:2,
+      tension:0.4,
+      fill:false,
+    }))},
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{
+          labels:{
+            color:'#8E8E93',
+            font:{size:11,family:'-apple-system,sans-serif'},
+            boxWidth:8,boxHeight:8,
+            borderRadius:4,padding:14,
+            usePointStyle:true,pointStyle:'circle',
+          }
+        },
+        tooltip:{
+          backgroundColor:'rgba(28,28,30,0.9)',
+          titleColor:'#fff',
+          bodyColor:'rgba(255,255,255,0.75)',
+          padding:10,cornerRadius:10,
+          titleFont:{size:12,weight:'600'},
+          bodyFont:{size:12},
+        }
+      },
+      scales:{
+        x:{
+          ticks:{color:'#AEAEB2',maxTicksLimit:6,font:{size:10},maxRotation:0},
+          grid:{color:'rgba(0,0,0,0.04)',drawBorder:false},
+          border:{display:false}
+        },
+        y:{
+          ticks:{
+            color:'#8E8E93',font:{size:10},maxTicksLimit:5,
+            callback:v=>v+(cmpMetric==='temp'?'°':'%')
+          },
+          grid:{color:'rgba(0,0,0,0.04)',drawBorder:false},
+          border:{display:false},
+          title:{display:false}
+        }
+      }
+    }
+  });
+}
+function setCmpMetric(m,btn){
+  cmpMetric=m;
+  document.querySelectorAll('.cmp-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadCompare();
+}
+function setCmpHours(h,btn){
+  cmpHours=h;
+  document.querySelectorAll('.cmp-time-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadCompare();
+}
+
+// ── Detail ─────────────────────────────────────────────────────────────
+function openDetail(id){
+  activeRoom=allRooms.find(r=>r.id===id);
+  if(!activeRoom) return;
+  document.getElementById('detail-hdr-name').textContent=activeRoom.name;
+  document.getElementById('detail-name').textContent=activeRoom.name;
+  const d=activeRoom.latest;
+  document.getElementById('detail-sub').textContent=
+    d?'Letzte Messung: '+timeSince(d.ts)+' · GPIO '+activeRoom.gpio:'Keine Daten';
+  renderDetailMetrics(activeRoom);
+  renderThresholds(activeRoom);
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('page-detail').classList.remove('hidden');
+  loadChart();
+}
+function renderDetailMetrics(r){
+  const d=r.latest,t=d?.temp??null,h=d?.hum??null;
+  const tP=t?pct(t,r.thresholds.temp_min,r.thresholds.temp_max):0;
+  const hP=h?pct(h,r.thresholds.hum_min,r.thresholds.hum_max):0;
+  document.getElementById('detail-metrics').innerHTML=`
+    <div class="big-tile">
+      <div class="big-lbl">Temperatur</div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <div class="big-val" style="color:${tempColor(t)}">${t??'–'}</div>
+        <div class="big-unit">°C</div>
+      </div>
+      <div class="range-bar"><div class="range-fill" style="width:${tP}%;background:${tempColor(t)}"></div></div>
+    </div>
+    <div class="big-tile">
+      <div class="big-lbl">Feuchte</div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <div class="big-val" style="color:${humColor(h)}">${h??'–'}</div>
+        <div class="big-unit">%</div>
+      </div>
+      <div class="range-bar"><div class="range-fill" style="width:${hP}%;background:${humColor(h)}"></div></div>
+    </div>`;
+}
+function renderThresholds(r){
+  document.getElementById('thr-grid').innerHTML=[
+    ['temp_max','Max Temp','°C',r.thresholds.temp_max],
+    ['temp_min','Min Temp','°C',r.thresholds.temp_min],
+    ['hum_max','Max Feuchte','%',r.thresholds.hum_max],
+    ['hum_min','Min Feuchte','%',r.thresholds.hum_min],
+  ].map(([k,l,u,v])=>`
+    <div class="thr-tile">
+      <div class="thr-lbl">${l}</div>
+      <div class="thr-row">
+        <input class="thr-input" id="thr-${k}" type="number" step="0.5" value="${v}">
+        <span class="thr-unit">${u}</span>
+      </div>
+    </div>`).join('');
+}
+async function saveThresholds(){
+  if(!activeRoom) return;
+  const data={};
+  ['temp_max','temp_min','hum_max','hum_min'].forEach(k=>
+    data[k]=parseFloat(document.getElementById('thr-'+k).value));
+  const r=await fetch('/api/thresholds/'+activeRoom.id,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j=await r.json();
+  toast(j.ok?'Grenzwerte gespeichert':'Fehler',j.ok?'success':'error');
+  if(j.ok) Object.assign(activeRoom.thresholds,data);
+}
+
+// ── Chart Detail ───────────────────────────────────────────────────────
+function setHours(h,btn){
+  chartHours=h;
+  document.querySelectorAll('.time-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); loadChart();
+}
+async function loadChart(){
+  if(!activeRoom) return;
+  const res  = await fetch('/api/history/'+activeRoom.id+'?hours='+chartHours);
+  const data = await res.json();
+  const ctx  = document.getElementById('chart-main').getContext('2d');
+  if(chart) chart.destroy();
+
+  const labels = data.map(d=>fmtTime(d.ts,chartHours));
+  const temps  = data.map(d=>d.t);
+  const hums   = data.map(d=>d.h);
+
+  // Gradient Temp
+  const gradT = ctx.createLinearGradient(0,0,0,200);
+  gradT.addColorStop(0,'rgba(255,159,10,0.18)');
+  gradT.addColorStop(1,'rgba(255,159,10,0.0)');
+
+  // Gradient Hum
+  const gradH = ctx.createLinearGradient(0,0,0,200);
+  gradH.addColorStop(0,'rgba(0,122,255,0.12)');
+  gradH.addColorStop(1,'rgba(0,122,255,0.0)');
+
+  // Min/Max Annotations
+  const tMax=Math.max(...temps.filter(v=>v!=null));
+  const tMin=Math.min(...temps.filter(v=>v!=null));
+  const tMaxIdx=temps.indexOf(tMax);
+  const tMinIdx=temps.indexOf(tMin);
+
+  chart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {
+          label:'Temperatur °C',
+          data:temps,
+          borderColor:'#FF9F0A',
+          backgroundColor:gradT,
+          borderWidth:2,
+          pointRadius:0,
+          pointHoverRadius:5,
+          pointHoverBackgroundColor:'#FF9F0A',
+          pointHoverBorderColor:'#fff',
+          pointHoverBorderWidth:2,
+          tension:0.4,
+          fill:true,
+          yAxisID:'yT'
+        },
+        {
+          label:'Feuchte %',
+          data:hums,
+          borderColor:'#007AFF',
+          backgroundColor:gradH,
+          borderWidth:2,
+          pointRadius:0,
+          pointHoverRadius:5,
+          pointHoverBackgroundColor:'#007AFF',
+          pointHoverBorderColor:'#fff',
+          pointHoverBorderWidth:2,
+          tension:0.4,
+          fill:true,
+          yAxisID:'yH'
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{
+          display:true,
+          position:'top',
+          align:'end',
+          labels:{
+            color:'#8E8E93',
+            font:{size:11,family:'-apple-system,sans-serif'},
+            boxWidth:8,
+            boxHeight:8,
+            borderRadius:4,
+            padding:16,
+            usePointStyle:true,
+            pointStyle:'circle',
+          }
+        },
+        tooltip:{
+          backgroundColor:'rgba(28,28,30,0.9)',
+          titleColor:'#fff',
+          bodyColor:'rgba(255,255,255,0.75)',
+          padding:10,
+          cornerRadius:10,
+          titleFont:{size:12,weight:'600'},
+          bodyFont:{size:12},
+          callbacks:{
+            title:items=>{
+              return items[0]?.label||'';
+            },
+            label:item=>{
+              if(item.datasetIndex===0) return '  🌡 '+item.formattedValue+' °C';
+              return '  💧 '+item.formattedValue+' %';
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{
+            color:'#AEAEB2',
+            maxTicksLimit:chartHours<=1?6:chartHours<=6?6:8,
+            font:{size:10,family:'-apple-system,sans-serif'},
+            maxRotation:0,
+          },
+          grid:{color:'rgba(0,0,0,0.04)',drawBorder:false},
+          border:{display:false}
+        },
+        yT:{
+          position:'left',
+          ticks:{
+            color:'#FF9F0A',
+            font:{size:10},
+            maxTicksLimit:5,
+            callback:v=>v+'°'
+          },
+          grid:{color:'rgba(0,0,0,0.04)',drawBorder:false},
+          border:{display:false}
+        },
+        yH:{
+          position:'right',
+          ticks:{
+            color:'#007AFF',
+            font:{size:10},
+            maxTicksLimit:5,
+            callback:v=>v+'%'
+          },
+          grid:{display:false},
+          border:{display:false}
+        }
+      }
+    }
+  });
+}
+
+// ── Settings ───────────────────────────────────────────────────────────
+async function loadSettings(){
+  const r=await fetch('/api/settings');
+  _currentCfg=await r.json();
+  document.getElementById('sim-toggle').checked=_currentCfg.simulation_mode;
+  updateModeBadge(_currentCfg.simulation_mode);
+  highlightInterval(_currentCfg.read_interval);
+  renderRoomsEditor(_currentCfg.rooms);
+  initNotifUI();
+}
+function updateModeBadge(isSim){
+  const b=document.getElementById('mode-badge');
+  b.className='mode-tag '+(isSim?'sim':'live');
+  b.textContent=isSim?'Demo-Modus aktiv':'Live-Modus aktiv';
+}
+function toggleMode(el){
+  const isSim=el.checked;
+  updateModeBadge(isSim);
+  document.getElementById('mode-warning').style.display=
+    (!isSim&&_currentCfg?.simulation_mode)?'block':'none';
+  fetch('/api/settings/mode',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({simulation_mode:isSim})})
+    .then(r=>r.json()).then(j=>{
+      if(j.ok){
+        toast(j.db_reset?'Live-Modus aktiv · Demo-Daten gelöscht':'Modus gespeichert');
+        if(_currentCfg) _currentCfg.simulation_mode=isSim;
+        document.getElementById('mode-warning').style.display='none';
+      } else toast('Fehler','error');
+    }).catch(()=>toast('Verbindungsfehler','error'));
+}
+function highlightInterval(val){
+  const map={'10s':10,'30s':30,'1 min':60,'2 min':120,'5 min':300};
+  document.querySelectorAll('.ivl-btn').forEach(b=>b.classList.toggle('active',map[b.textContent]===val));
+}
+function setInterval_(val){
+  fetch('/api/settings/interval',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({interval:val})})
+    .then(r=>r.json()).then(j=>{
+      if(j.ok){highlightInterval(val);toast('Intervall gespeichert');}
+      else toast('Fehler','error');
+    });
+}
+
+// ── Rooms Editor ───────────────────────────────────────────────────────
+function renderRoomsEditor(rooms){
+  _editorRooms=JSON.parse(JSON.stringify(rooms));
+  const el=document.getElementById('rooms-editor');
+  el.innerHTML='';
+  _editorRooms.forEach((r,i)=>el.appendChild(makeRoomItem(r,i)));
+}
+function makeRoomItem(r,i){
+  const div=document.createElement('div');
+  div.className='room-item'; div.id='room-item-'+i;
+  div.innerHTML=`
+    <div class="room-item-hdr">
+      <div class="room-item-title">Raum ${i+1}</div>
+      <button class="del-btn" onclick="deleteRoom(${i})">✕</button>
+    </div>
+    <div class="field-row">
+      <div class="field-group wide">
+        <div class="field-lbl">Raumname</div>
+        <input class="field-input" id="rname-${i}" value="${escHtml(r.name)}" placeholder="z.B. Keller">
+      </div>
+      <div class="field-group">
+        <div class="field-lbl">GPIO (BCM)</div>
+        <input class="field-input" id="rgpio-${i}" type="number" value="${r.gpio}" min="2" max="27">
+      </div>
+      <div class="field-group">
+        <div class="field-lbl">ID</div>
+        <input class="field-input" id="rid-${i}" value="${escHtml(r.id)}" placeholder="r1">
+      </div>
+    </div>`;
+  return div;
+}
+function addRoomField(){
+  const i=_editorRooms.length;
+  const nr={id:'r'+(i+1),name:'Neuer Raum '+(i+1),gpio:[4,17,27,22][i]||4,
+    thresholds:{temp_max:30,temp_min:0,hum_max:80,hum_min:30}};
+  _editorRooms.push(nr);
+  document.getElementById('rooms-editor').appendChild(makeRoomItem(nr,i));
+}
+function deleteRoom(i){
+  if(_editorRooms.length<=1){toast('Mindestens 1 Raum nötig','error');return;}
+  _editorRooms.splice(i,1); renderRoomsEditor(_editorRooms); toast('Raum entfernt');
+}
+async function saveRooms(){
+  const rooms=_editorRooms.map((r,i)=>({
+    id:document.getElementById('rid-'+i)?.value.trim()||r.id,
+    name:document.getElementById('rname-'+i)?.value.trim()||r.name,
+    gpio:parseInt(document.getElementById('rgpio-'+i)?.value)||r.gpio,
+    thresholds:r.thresholds,
+  }));
+  const res=await fetch('/api/settings/rooms',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({rooms})});
+  const j=await res.json();
+  if(j.ok){toast(j.count+' Räume gespeichert');_currentCfg.rooms=rooms;renderRoomsEditor(rooms);}
+  else toast(j.error||'Fehler','error');
+}
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ── Slave Stats ────────────────────────────────────────────────────────
+async function loadSlaves() {
+  const el = document.getElementById('slaves-content');
+  let slaves;
+  try {
+    const res = await fetch('/api/slaves');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    slaves = await res.json();
+  } catch(e) {
+    el.innerHTML = '<div class="no-slaves"><div class="no-slaves-icon">⚠️</div>' +
+      '<div style="font-size:16px;font-weight:600;margin-bottom:8px">Verbindungsfehler</div>' +
+      '<div style="font-size:13px;color:var(--red)">' + e.message + '</div></div>';
+    return;
+  }
+  if (!slaves.length) {
+    el.innerHTML = '<div class="no-slaves"><div class="no-slaves-icon">📡</div>' +
+      '<div style="font-size:16px;font-weight:600;margin-bottom:8px">Noch kein Slave verbunden</div>' +
+      '<div style="font-size:13px">Slave installieren und starten – meldet sich automatisch</div></div>';
+    return;
+  }
+  el.innerHTML = '';
+  el.appendChild(createSectionHdr('Verbundene Geräte'));
+  slaves.forEach(s => el.appendChild(makeSlavCard(s)));
+}
+
+function createSectionHdr(txt) {
+  const d = document.createElement('div');
+  d.className = 'section-hdr'; d.textContent = txt; return d;
+}
+
+function makeSlavCard(s) {
+  const card = document.createElement('div');
+  card.className = 'slave-card';
+  const rate     = s.stats_24h.rate_pct;
+  const rateCol  = rate >= 90 ? 'var(--green)' : rate >= 70 ? 'var(--yellow)' : 'var(--red)';
+  const offlineSec = s.offline_sec || 0;
+  const threshold  = 90; // 3x 30s Intervall
+  // Primär: stats_1h nutzen – wenn Transfers in letzter Stunde → online
+  const recentOk   = (s.stats_1h && s.stats_1h.total > 0);
+  const isOnline   = recentOk || offlineSec < threshold;
+  const isStale    = !isOnline && offlineSec < 7200;
+  const dotCls     = !s.last_seen ? 'unknown' : isOnline ? 'online' : isStale ? 'stale' : 'offline';
+  const statusTxt  = !s.last_seen ? 'Noch nie verbunden'
+    : isOnline ? 'Verbunden · ' + (s.stats_1h?.total||0) + ' Transfers/h'
+    : isStale  ? 'Keine Daten – ' + fmtDuration(offlineSec)
+    : 'Offline – ' + fmtDuration(offlineSec);
+
+  // Timeline Dots
+  const tldots = (s.timeline || []).slice().reverse().map(t => {
+    const cls = !t.success ? 'fail' : t.buffer_pending > 0 ? 'buf' : 'ok';
+    const tip = `${t.ts?.slice(11,16) || ''} · ${t.success?'OK':'Fehler'}`
+              + (t.buffer_pending > 0 ? ` · Puffer:${t.buffer_pending}` : '')
+              + (t.latency_ms != null ? ` · ${t.latency_ms}ms` : '');
+    return `<div class="tl-dot ${cls}" title="${tip}"></div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="slave-header">
+      <div>
+        <div class="slave-title">
+          <span class="online-dot ${dotCls}"></span>${s.room_name}
+        </div>
+        <div class="slave-meta">${s.slave_host || s.room_id} · v${s.version || '–'}</div>
+      </div>
+      <div class="status-pill ${isOnline ? 'green' : isStale ? 'yellow' : 'red'}">${statusTxt}</div>
+    </div>
+
+    <div class="slave-stats-grid">
+      <div class="slave-stat">
+        <div class="slave-stat-val" style="color:${rateCol}">${rate}%</div>
+        <div class="slave-stat-lbl">Erfolgsrate 24h</div>
+      </div>
+      <div class="slave-stat">
+        <div class="slave-stat-val">${s.stats_24h.total || 0}</div>
+        <div class="slave-stat-lbl">Übertragungen</div>
+      </div>
+      <div class="slave-stat">
+        <div class="slave-stat-val">${s.stats_24h.avg_latency ?? '–'}<span style="font-size:12px;color:var(--muted)">ms</span></div>
+        <div class="slave-stat-lbl">Ø Latenz</div>
+      </div>
+    </div>
+
+    <div class="quality-bar-wrap">
+      <div class="quality-label">Verbindungsqualität (24h)</div>
+      <div class="quality-bar">
+        <div class="quality-fill" style="width:${rate}%;background:${rateCol}"></div>
+      </div>
+    </div>
+
+    <div class="slave-timeline">
+      <div class="tl-title">
+        Letzte ${(s.timeline||[]).length} Übertragungen
+        <span style="margin-left:8px">
+          <span style="color:var(--green)">●</span> OK
+          <span style="color:var(--yellow);margin-left:4px">●</span> Puffer
+          <span style="color:var(--red);margin-left:4px">●</span> Fehler
+        </span>
+      </div>
+      <div class="tl-dots">${tldots}</div>
+    </div>
+
+    <div class="slave-info">
+      <div class="info-row">
+        <span class="info-key">Letzte Übertragung</span>
+        <span class="info-val">${s.stats_24h.last_ts ? s.stats_24h.last_ts.slice(11,16) + ' Uhr' : '–'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Letzte IP-Adresse</span>
+        <span class="info-val" style="font-family:monospace">${s.last_ip || '–'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Max. Puffer (24h)</span>
+        <span class="info-val">${s.stats_24h.max_buffer || 0} Messungen</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Ø Puffergröße</span>
+        <span class="info-val">${s.stats_24h.avg_buffer ?? '–'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Erfolgsrate 1h</span>
+        <span class="info-val">${s.stats_1h.rate_pct}% (${s.stats_1h.total} Transfers)</span>
+      </div>
+    </div>
+
+    <button class="ping-btn" id="ping-btn-${s.room_id}"
+      onclick="pingSlav('${s.room_id}','${s.slave_host || 'pitemp2'}')">
+      📡  Slave anpingen
+    </button>
+    <div id="ping-result-${s.room_id}" style="display:none"></div>
+  `;
+  return card;
+}
+
+async function pingSlav(slaveId, host) {
+  const btn = document.getElementById('ping-btn-' + slaveId);
+  const res = document.getElementById('ping-result-' + slaveId);
+  btn.textContent = '⏳  Suche…';
+  btn.disabled = true;
+  res.style.display = 'none';
+  try {
+    const r = await fetch('/api/slaves/' + slaveId + '/ping', {method:'POST'});
+    const j = await r.json();
+    const ok = j.reachable;
+    let details = '';
+    if (j.results?.mdns) {
+      details += `mDNS (${j.results.mdns.host}): ${j.results.mdns.reachable ? '✓ erreichbar' : '✗ nicht erreichbar'}<br>`;
+    }
+    if (j.results?.last_ip) {
+      details += `IP (${j.results.last_ip.ip}): ${j.results.last_ip.reachable ? '✓ erreichbar' : '✗ nicht erreichbar'}`;
+    }
+    res.innerHTML = details;
+    res.className = 'ping-result ' + (ok ? 'ok' : 'fail');
+    res.style.display = 'block';
+    toast(ok ? '✓ Slave erreichbar' : '✗ Slave nicht erreichbar', ok ? 'success' : 'error');
+  } catch(e) {
+    res.textContent = 'Verbindungsfehler';
+    res.className = 'ping-result fail';
+    res.style.display = 'block';
+  }
+  btn.textContent = '📡  Slave anpingen';
+  btn.disabled = false;
+}
+
+function fmtDuration(sec) {
+  if (sec < 60)   return sec + 's';
+  if (sec < 3600) return Math.floor(sec/60) + ' min';
+  return Math.floor(sec/3600) + ' h ' + Math.floor((sec%3600)/60) + ' min';
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+initNotifUI();
+loadAll();
+refreshId=setInterval(loadAll,15000);
+</script>
+</body>
+</html>

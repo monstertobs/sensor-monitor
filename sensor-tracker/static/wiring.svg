@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="100%" style="background:#F8F8FA;border-radius:12px">
+
+  <!-- ── Hintergrund ── -->
+  <rect width="680" height="400" fill="#F8F8FA" rx="12"/>
+  <text x="340" y="30" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#1C1C1E">DHT22 Verdrahtung · Pi Zero W</text>
+
+  <!-- ══ DHT22 ══ -->
+  <rect x="30" y="55" width="116" height="250" rx="10" fill="#1A1A2E" stroke="#4A4A6A" stroke-width="1.2"/>
+  <text x="88" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">DHT22</text>
+  <text x="88" y="93" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">AM2302</text>
+
+  <!-- Pin 1 VCC -->
+  <rect x="32" y="105" width="112" height="42" fill="rgba(255,59,48,0.2)"/>
+  <text x="75" y="122" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 1</text>
+  <text x="75" y="138" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FF6B6B">VCC</text>
+  <circle cx="146" cy="126" r="5" fill="#FF3B30"/>
+
+  <!-- Pin 2 DATA -->
+  <rect x="32" y="147" width="112" height="42" fill="rgba(0,122,255,0.2)"/>
+  <line x1="32" y1="147" x2="144" y2="147" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="164" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 2</text>
+  <text x="75" y="180" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64B5FF">DATA</text>
+  <circle cx="146" cy="168" r="5" fill="#007AFF"/>
+
+  <!-- Pin 3 NC -->
+  <rect x="32" y="189" width="112" height="42" fill="rgba(255,255,255,0.04)"/>
+  <line x1="32" y1="189" x2="144" y2="189" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="206" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#636366">Pin 3</text>
+  <text x="75" y="222" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#636366">NC</text>
+  <!-- X für nicht belegt -->
+  <line x1="154" y1="203" x2="168" y2="217" stroke="#636366" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="168" y1="203" x2="154" y2="217" stroke="#636366" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Pin 4 GND -->
+  <rect x="32" y="231" width="112" height="42" fill="rgba(52,199,89,0.2)"/>
+  <line x1="32" y1="231" x2="144" y2="231" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+  <text x="75" y="248" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 4</text>
+  <text x="75" y="264" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#34C759">GND</text>
+  <circle cx="146" cy="252" r="5" fill="#34C759"/>
+
+  <!-- ══ WIDERSTAND ══ -->
+  <!-- Widerstand-Symbol: Rechteck mit Anschlüssen -->
+  <line x1="274" y1="115" x2="298" y2="115" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round"/>
+  <rect x="298" y="104" width="68" height="22" rx="6" fill="#1C1C1E" stroke="#FF9F0A" stroke-width="2"/>
+  <text x="332" y="119" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#FF9F0A">10 kΩ</text>
+  <line x1="366" y1="115" x2="390" y2="115" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round"/>
+  <!-- Beschriftung -->
+  <text x="332" y="142" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">Pull-Up</text>
+
+  <!-- ══ PI ZERO ══ -->
+  <rect x="490" y="55" width="162" height="280" rx="10" fill="#1A2E1A" stroke="#2A5C2A" stroke-width="1.2"/>
+  <text x="571" y="76" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">Pi Zero W</text>
+  <text x="571" y="91" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">GPIO Header</text>
+
+  <!-- Pi Pin 1 - 3.3V -->
+  <rect x="492" y="100" width="158" height="38" fill="rgba(255,159,10,0.2)"/>
+  <circle cx="488" cy="119" r="5" fill="#FF9F0A"/>
+  <text x="571" y="115" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 1</text>
+  <text x="571" y="130" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FFCC44">3,3 V (Pull-Up)</text>
+
+  <!-- Pi Pin 2 - 5V -->
+  <rect x="492" y="138" width="158" height="38" fill="rgba(255,59,48,0.2)"/>
+  <line x1="492" y1="138" x2="650" y2="138" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="157" r="5" fill="#FF3B30"/>
+  <text x="571" y="153" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 2</text>
+  <text x="571" y="168" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#FF6B6B">5 V (VCC)</text>
+
+  <!-- Pi Pin 7 - GPIO4 -->
+  <rect x="492" y="176" width="158" height="38" fill="rgba(0,122,255,0.2)"/>
+  <line x1="492" y1="176" x2="650" y2="176" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="195" r="5" fill="#007AFF"/>
+  <text x="571" y="191" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 7</text>
+  <text x="571" y="206" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64B5FF">GPIO 4 (DATA)</text>
+
+  <!-- Pi Pin 6 - GND -->
+  <rect x="492" y="214" width="158" height="38" fill="rgba(52,199,89,0.2)"/>
+  <line x1="492" y1="214" x2="650" y2="214" stroke="rgba(255,255,255,.08)" stroke-width="0.5"/>
+  <circle cx="488" cy="233" r="5" fill="#34C759"/>
+  <text x="571" y="229" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Pin 6</text>
+  <text x="571" y="244" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#34C759">GND</text>
+
+  <!-- weitere Pins grau -->
+  <line x1="492" y1="252" x2="650" y2="252" stroke="rgba(255,255,255,.05)" stroke-width="0.5"/>
+  <text x="571" y="265" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#3A3A3C">Pin 11 · 13 · 15 (weitere GPIOs)</text>
+
+  <!-- ══ VERBINDUNGEN ══ -->
+
+  <!-- ORANGE: Pull-Up 3.3V Bus – Widerstand links → Pi Pin 1 -->
+  <!-- Widerstand rechts → nach oben → Pi Pin 1 -->
+  <polyline points="390,115 440,115 440,119 488,119"
+    fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Widerstand links → nach oben → Bus-Linie Knotenpunkt -->
+  <polyline points="274,115 240,115 240,168 260,168"
+    fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+    stroke-dasharray="4,3"/>
+
+  <!-- ROT: VCC → 5V (Pi Pin 2) -->
+  <polyline points="151,126 210,126 210,157 488,157"
+    fill="none" stroke="#FF3B30" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- BLAU: DATA → Knotenpunkt → GPIO4 + Widerstand -->
+  <!-- DHT22 → Knotenpunkt -->
+  <line x1="151" y1="168" x2="260" y2="168"
+    fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Knotenpunkt → Pi GPIO4 -->
+  <polyline points="260,168 440,168 440,195 488,195"
+    fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Knotenpunkt → Widerstand (gestrichelte Linie nach oben) -->
+  <!-- (die gestrichelte orange Linie kommt von 240,168 → das ist der Anschluss) -->
+
+  <!-- Knotenpunkt Marker -->
+  <circle cx="260" cy="168" r="6" fill="#007AFF" stroke="#F8F8FA" stroke-width="2"/>
+
+  <!-- GRÜN: GND -->
+  <polyline points="151,252 210,252 210,233 488,233"
+    fill="none" stroke="#34C759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ══ LABELS ══ -->
+  <!-- Pull-Up Beschriftung -->
+  <text x="240" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">Pull-Up</text>
+  <text x="240" y="98" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#FF9F0A">zu 3,3V</text>
+
+  <!-- ══ LEGENDE ══ -->
+  <rect x="20" y="330" width="640" height="55" rx="8" fill="#FFFFFF" stroke="#E5E5EA" stroke-width="1"/>
+
+  <circle cx="45" cy="350" r="5" fill="#FF3B30"/>
+  <text x="57" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">VCC → 5V (Pin 2)</text>
+
+  <circle cx="45" cy="370" r="5" fill="#007AFF"/>
+  <text x="57" y="374" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">DATA → GPIO4 (Pin 7)</text>
+
+  <circle cx="195" cy="350" r="5" fill="#34C759"/>
+  <text x="207" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">GND → Pin 6</text>
+
+  <rect x="197" y="362" width="8" height="8" rx="2" fill="#1C1C1E" stroke="#FF9F0A" stroke-width="1.5"/>
+  <text x="211" y="372" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">10kΩ zwischen DATA und 3,3V</text>
+
+  <circle cx="395" cy="350" r="6" fill="#007AFF" stroke="#F8F8FA" stroke-width="1.5"/>
+  <text x="407" y="354" font-family="-apple-system,sans-serif" font-size="11" fill="#1C1C1E">Knotenpunkt DATA</text>
+  <text x="407" y="372" font-family="-apple-system,sans-serif" font-size="10" fill="#8E8E93">Pin 3 (NC) = offen lassen</text>
+</svg>
