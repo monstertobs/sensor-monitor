@@ -1,7 +1,7 @@
 Sensor Monitor – Temperatur & Luftfeuchtigkeit
 ==============================================
-Version:    0.5.7
-Datum:      2026-03-24
+Version:    0.5.8
+Datum:      2026-03-30
 Autor:      Tobias Meier
 E-Mail:     admin@secutobs.com
 Plattform:  Raspberry Pi Zero 1 (32-bit OS Lite, Bookworm)
@@ -14,6 +14,17 @@ Versionsschema
 
 Changelog
 ---------
+0.5.8  (2026-03-30)
+  FIX: _find_iio_device() sucht jetzt per Device-Name (dht) statt blindem Fallback
+  FIX: slave_registry speichert last_seen als UTC (datetime('now') statt localtime)
+  FIX: offline_sec Zeitzonenberechnung konsistent UTC
+  FIX: Versions-String in app.py print() liest jetzt dynamisch aus VERSION-Datei
+  FIX: sender.py – get_own_ip() und get_hostname() werden pro Batch nur 1x aufgerufen
+  FIX: sender.py – buffer_pending berechnet per enumerate() statt O(n²) index()
+  FIX: sender.py – CONFIG_PATH/DB_PATH relativ zu __file__ statt hardcoded /home/pi/
+  NEU: sensor-sender/requirements.txt hinzugefügt
+  NEU: static/manifest.json (PWA) hinzugefügt, Route /manifest.json in app.py
+
 0.5.7  (2026-03-26)
   FIX: Online-Status nutzt stats_1h statt nur offline_sec
   FIX: slave_registry last_seen mit localtime (Zeitzonen-Fix)

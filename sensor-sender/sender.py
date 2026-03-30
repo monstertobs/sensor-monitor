@@ -7,10 +7,11 @@ Autor: Tobias Meier <admin@secutobs.com>
 import time, math, random, json, os, sqlite3, urllib.request, urllib.error, socket
 from datetime import datetime
 
-VERSION = "0.5.5"
-CONFIG_PATH = "/home/pi/sensor-sender/config.json"
+VERSION = "0.5.8"
+_BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(_BASE_DIR, "config.json")
 _START_TIME = time.time()
-DB_PATH     = "/home/pi/sensor-sender/buffer.db"
+DB_PATH     = os.path.join(_BASE_DIR, "buffer.db")
 
 DEFAULT_CONFIG = {
     "master_url":    "http://pitemp.local:5000",
@@ -197,18 +198,21 @@ def send_batch(cfg, readings):
     Gibt Liste der erfolgreich gesendeten IDs zurück.
     """
     sent_ids = []
-    url = cfg["master_url"].rstrip("/") + "/api/ingest"
+    url       = cfg["master_url"].rstrip("/") + "/api/ingest"
+    own_ip    = get_own_ip()
+    hostname  = get_hostname()
+    total     = len(readings)
 
-    for r in readings:
+    for i, r in enumerate(readings):
         payload = json.dumps({
             "room_id":        r["room_id"],
             "temp":           r["temp"],
             "hum":            r["hum"],
             "token":          cfg["ingest_token"],
             "timestamp":      r.get("ts"),
-            "slave_ip":       get_own_ip(),
-            "slave_host":     get_hostname(),
-            "buffer_pending": len(readings) - readings.index(r) - 1,
+            "slave_ip":       own_ip,
+            "slave_host":     hostname,
+            "buffer_pending": total - i - 1,
             "uptime_sec":     int(time.time() - _START_TIME),
             "version":        VERSION,
         }).encode()
@@ -252,7 +256,7 @@ def main():
     print(f"    Puffer:   {DB_PATH}\n")
 
     # IIO-Treiber abwarten (braucht nach Boot etwas Zeit)
-    import os, glob
+    import glob
     print("[…] Warte auf IIO-Sensor-Treiber...")
     for _ in range(30):  # max 30s warten
         if glob.glob("/sys/bus/iio/devices/iio:device*/in_temp_input"):

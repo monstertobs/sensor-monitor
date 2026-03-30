@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sensor Monitor v0.5.2
+Sensor Monitor v0.5.8
 Temperatur & Luftfeuchtigkeit – Multi-Raum Dashboard
 Autor:  Tobias Meier <admin@secutobs.com>
 """
@@ -120,7 +120,15 @@ _sim_t = {}
 def _find_iio_device(gpio_pin):
     """Sucht IIO-Device für den gegebenen GPIO-Pin."""
     import glob
-    # Erstes verfügbares IIO-Device mit temp+humidity
+    # Zuerst nach DHT-Device per Name suchen (wie sender.py)
+    for path in glob.glob("/sys/bus/iio/devices/iio:device*/"):
+        try:
+            name = open(path + "name").read().strip()
+            if "dht" in name.lower():
+                return path
+        except Exception:
+            pass
+    # Fallback: erstes verfügbares IIO-Device mit temp+humidity
     for path in glob.glob("/sys/bus/iio/devices/iio:device*/"):
         try:
             t = open(path + "in_temp_input").read().strip()
@@ -351,7 +359,7 @@ def api_ingest():
     # Registry aktualisieren
     conn.execute(
         "INSERT INTO slave_registry (slave_id,slave_host,last_ip,last_seen,version)"
-        " VALUES (?,?,?,datetime('now','localtime'),?)"
+        " VALUES (?,?,?,datetime('now'),?)"
         " ON CONFLICT(slave_id) DO UPDATE SET"
         "   slave_host=excluded.slave_host,"
         "   last_ip=excluded.last_ip,"
@@ -370,6 +378,12 @@ def api_ingest():
 def static_files(filename):
     from flask import send_from_directory
     return send_from_directory(os.path.join(BASE_DIR, "static"), filename)
+
+@app.route("/manifest.json")
+def manifest():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(BASE_DIR, "static"), "manifest.json",
+                               mimetype="application/manifest+json")
 
 
 @app.route("/api/summary")
@@ -503,12 +517,11 @@ def api_slaves():
         last_seen = reg["last_seen"]
         offline_sec = None
         if last_seen:
-            import re
-            # SQLite liefert String ohne Z
+            # slave_registry speichert UTC (datetime('now')), daher explizit als UTC parsen
             offline_sec = int(time.time()) - int(
-                __import__('datetime').datetime.strptime(
-                    last_seen[:19], "%Y-%m-%d %H:%M:%S"
-                ).timestamp()
+                datetime.strptime(last_seen[:19], "%Y-%m-%d %H:%M:%S")
+                .replace(tzinfo=__import__('datetime').timezone.utc)
+                .timestamp()
             )
 
         s24 = dict(stats_24h) if stats_24h else {}
@@ -604,5 +617,5 @@ if __name__ == "__main__":
     _sensor_thread.start()
     time.sleep(1)
     mode = "SIMULATION" if SIMULATION_MODE else "HARDWARE"
-    print("\n✅  Sensor Monitor v0.5.2 [" + mode + "]  →  http://0.0.0.0:5000\n")
+    print(f"\n✅  Sensor Monitor v{_read_version()} [{mode}]  →  http://0.0.0.0:5000\n")
     app.run(host="0.0.0.0", port=5000, debug=False)

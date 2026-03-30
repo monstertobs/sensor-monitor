@@ -232,13 +232,15 @@ sensor-monitor/
 │   ├── templates/
 │   │   └── index.html           # Dashboard (Single Page App)
 │   ├── static/
-│   │   └── wiring.svg           # Schaltplan
+│   │   ├── wiring.svg           # Schaltplan
+│   │   └── manifest.json        # PWA Manifest
 │   ├── requirements.txt
 │   ├── sensor-tracker.service   # systemd Service
 │   └── VERSION
 ├── sensor-sender/               # Slave (Sender)
 │   ├── sender.py                # DHT22 lesen + senden
 │   ├── config.json              # Konfiguration
+│   ├── requirements.txt
 │   └── sensor-sender.service    # systemd Service
 └── docs/
     └── Sensor_Monitor_Anleitung.docx
@@ -329,7 +331,7 @@ Dieses Projekt entstand in mehreren Iterationen:
 | 0.2.x | Analyse-Tab, Schimmelrisiko, Push-Benachrichtigungen |
 | 0.3.x | Master/Slave Architektur, Token-Schutz |
 | 0.4.x | Netzwerk-Tab, Store & Forward, Watchdog |
-| 0.5.x | IIO-Kernel-Treiber, 5V-Fix, PYTHONUNBUFFERED, Chart-Redesign |
+| 0.5.x | IIO-Kernel-Treiber, 5V-Fix, PYTHONUNBUFFERED, Chart-Redesign, Bugfixes |
 
 ---
 
